@@ -1,3 +1,4 @@
+import asyncio
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
 
@@ -16,10 +17,10 @@ memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
 # lets construct our conditional functions
-def decide_to_generate(state):
+async def decide_to_generate(state: GraphState):
     print("---ASSESS GRADED DOCUMENTS---")
 
-    if state["web_search"]:
+    if state.web_search:
         print(
             "---DECISION: NOT ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, INCLUDE WEB SEARCH---"
         )
@@ -29,20 +30,20 @@ def decide_to_generate(state):
         return GENERATE
 
 
-def grade_generation_grounded_in_documents_and_question(state: GraphState) -> str:
+async def grade_generation_grounded_in_documents_and_question(state: GraphState) -> str:
     print("---CHECK HALLUCINATIONS---")
-    question = state["question"]
-    documents = state["documents"]
-    generation = state["generation"]
+    question = state.question
+    documents = state.documents
+    generation = state.generation
 
-    score = hallucination_grader.invoke(
+    score = await hallucination_grader.ainvoke(
         {"documents": documents, "generation": generation}
     )
 
     if hallucination_grade := score.binary_score:
         print("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         print("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = await answer_grader.ainvoke({"question": question, "generation": generation})
         if answer_grade := score.binary_score:
             print("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
@@ -54,12 +55,12 @@ def grade_generation_grounded_in_documents_and_question(state: GraphState) -> st
         return "not supported"
 
 
-def route_question(state: GraphState) -> str:
+async def route_question(state: GraphState) -> str:
     print("---ROUTE QUESTION---")
-    question = state["question"]
-    client_topics = state["client_topics"]
-    source: RouteQuery = question_router.invoke({
-        "client_topics":", ".join(client_topics),  
+    question = state.question
+    client_topics = state.client_topics
+    source: RouteQuery = await question_router.ainvoke({
+        "client_topics": ", ".join(client_topics),  
         "question": question
         })
     if source.datasource == WEBSEARCH:
@@ -105,6 +106,12 @@ workflow.add_conditional_edges(
 )
 
 
-app = workflow.compile(checkpointer=memory)
+async def run_workflow(state: GraphState):
+    app = workflow.compile()
+    result = await app.ainvoke(state)
+    return result
 
-app.get_graph().draw_mermaid_png(output_file_path="graph.png")
+app = run_workflow
+
+# Optionally, you can still generate the graph visualization
+# workflow.get_graph().draw_mermaid_png(output_file_path="graph.png")

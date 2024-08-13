@@ -1,7 +1,8 @@
 from typing import List, Dict, Any, TypedDict
+from pydantic import BaseModel
 
 
-class GraphState(TypedDict):
+class GraphState(BaseModel):
     """
     Represents the state of our graph.
 
@@ -14,7 +15,7 @@ class GraphState(TypedDict):
     """
     
     question: str
-    generation: str
-    web_search: bool
-    documents: List[Dict[str]]  
-    client_topics: List[str]
+    generation: str = ""
+    web_search: bool = False
+    documents: List[Dict[str, Any]] = []
+    client_topics: List[str] = []
