@@ -9,3 +9,7 @@ app.include_router(ingestion.router)
 @app.get("/")
 async def root():
     return {"message": "Welcome to the RAG API"}
+
+@app.get("/welcome")
+async def welcome():
+    return {"message": "Welcome to our enhanced RAG system with LangGraph!"}
