@@ -30,8 +30,18 @@ def get_env_variable(var_name: str) -> str:
         raise ValueError(f"Environment variable '{var_name}' not found.")
     return value
 
+# Load environment variables
+load_dotenv()
+
+# Get environment variables
+OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
+POSTGRES_USER = get_env_variable("POSTGRES_USER")
+POSTGRES_PASSWORD = get_env_variable("POSTGRES_PASSWORD")
+DB_HOST = get_env_variable("DB_HOST")
+DB_PORT = get_env_variable("DB_PORT")
+POSTGRES_DB = get_env_variable("POSTGRES_DB")
+
 try:
-    OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
     embeddings = OpenAIEmbeddings()
 
     pgvector_store = get_database().store
