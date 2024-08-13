@@ -1,9 +1,14 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from database.db import Database, PGVectorDatabase
 import os
+from functools import lru_cache
 
-def get_database(connection_string: str) -> Database:
+@lru_cache()
+def get_database() -> Database:
+    connection_string = os.getenv("DATABASE_URL")
+    if not connection_string:
+        raise ValueError("DATABASE_URL environment variable is not set")
     return PGVectorDatabase(connection_string=connection_string, collection_name="rag_collection")
 
 class GraphState(BaseModel):
@@ -16,7 +21,7 @@ class GraphState(BaseModel):
         web_search: whether to add search
         documents: list of documents
         client_topics: list of client topics
-        db: database instance
+        _db: private database instance
     """
     
     question: str
@@ -24,4 +29,10 @@ class GraphState(BaseModel):
     web_search: bool = False
     documents: List[Dict[str, Any]] = []
     client_topics: List[str] = []
-    db: Database = Field(default_factory=get_database)
+    _db: Optional[Database] = None
+
+    @property
+    def db(self) -> Database:
+        if self._db is None:
+            self._db = get_database()
+        return self._db
