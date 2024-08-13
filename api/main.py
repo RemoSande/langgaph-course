@@ -4,8 +4,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from langchain.schema import Document
 from typing import List
 from models import DocumentModel, DocumentResponse
-from database.db import PGVectorDatabase
 from graph.state import get_database, GraphState
+from database.db import Database
 from graph.graph import app as graph_app
 
 load_dotenv(find_dotenv())
@@ -37,14 +37,13 @@ db = get_database()
 async def add_documents(documents: list[DocumentModel]):
     try:
         docs = [
-            Document(
-                page_content=doc.page_content,
-                metadata=(
-                    {**doc.metadata, "digest": doc.generate_digest()}
-                    if doc.metadata
-                    else {"digest": doc.generate_digest()}
-                ),
-            )
+            {
+                "content": doc.page_content,
+                "metadata": {
+                    **doc.metadata,
+                    "digest": doc.generate_digest()
+                } if doc.metadata else {"digest": doc.generate_digest()}
+            }
             for doc in documents
         ]
         ids = await db.store_documents(docs)
@@ -66,7 +65,7 @@ async def get_documents_by_ids(ids: list[str]):
         documents = await db.get_documents_by_ids(ids)
         if not documents:
             raise HTTPException(status_code=404, detail="One or more IDs not found")
-        return documents
+        return [DocumentResponse(page_content=doc['content'], metadata=doc['metadata']) for doc in documents]
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
