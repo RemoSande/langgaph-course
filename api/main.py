@@ -33,32 +33,25 @@ def get_env_variable(var_name: str) -> str:
 # Load environment variables
 load_dotenv()
 
-try:
-    # Get environment variables
-    OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
-    CONNECTION_STRING = get_env_variable("DATABASE_URL")
+# Initialize database
+db = get_database()
 
-    embeddings = OpenAIEmbeddings()
-    db = get_database()
-    retriever = db.store.as_retriever()
-    template = """Answer the question based only on the following context:
-    {context}
+# Set up the retrieval chain
+embeddings = OpenAIEmbeddings()
+retriever = db.store.as_retriever()
+template = """Answer the question based only on the following context:
+{context}
 
-    Question: {question}
-    """
-    prompt = ChatPromptTemplate.from_template(template)
-    model = ChatOpenAI(model_name="gpt-3.5-turbo")
-    chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt
-        | model
-        | StrOutputParser()
-    )
-
-except ValueError as e:
-    raise HTTPException(status_code=500, detail=str(e))
-except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
+Question: {question}
+"""
+prompt = ChatPromptTemplate.from_template(template)
+model = ChatOpenAI(model_name="gpt-3.5-turbo")
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | model
+    | StrOutputParser()
+)
 
 @app.post("/documents/")
 async def add_documents(documents: list[DocumentModel]):
