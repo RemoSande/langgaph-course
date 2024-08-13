@@ -16,12 +16,13 @@ async def decide_to_generate(state: GraphState):
     print("---ASSESS GRADED DOCUMENTS---")
 
     if state.web_search:
-        print(
-            "---DECISION: NOT ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, INCLUDE WEB SEARCH---"
-        )
+        print("---DECISION: DOCUMENTS NOT FULLY RELEVANT, INCLUDE WEB SEARCH---")
+        return WEBSEARCH
+    elif not state.documents:
+        print("---DECISION: NO DOCUMENTS RETRIEVED, INCLUDE WEB SEARCH---")
         return WEBSEARCH
     else:
-        print("---DECISION: GENERATE---")
+        print("---DECISION: GENERATE BASED ON RETRIEVED DOCUMENTS---")
         return GENERATE
 
 
