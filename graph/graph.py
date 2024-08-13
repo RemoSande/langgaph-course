@@ -1,4 +1,3 @@
-import asyncio
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
 
@@ -8,13 +7,9 @@ from graph.chains.router import question_router, RouteQuery
 from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH
 from graph.nodes import generate, grade_documents, retrieve, web_search
 from graph.state import GraphState
-from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.checkpoint import MemorySaver
-
+from database.db import InMemoryDatabase
 
 load_dotenv()
-memory = SqliteSaver.from_conn_string(":memory:")
-memory = MemorySaver()
 
 # lets construct our conditional functions
 async def decide_to_generate(state: GraphState):
