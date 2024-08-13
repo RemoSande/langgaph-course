@@ -15,7 +15,7 @@ load_dotenv()
 memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
-
+# lets construct our conditional functions
 def decide_to_generate(state):
     print("---ASSESS GRADED DOCUMENTS---")
 
@@ -57,7 +57,11 @@ def grade_generation_grounded_in_documents_and_question(state: GraphState) -> st
 def route_question(state: GraphState) -> str:
     print("---ROUTE QUESTION---")
     question = state["question"]
-    source: RouteQuery = question_router.invoke({"question": question})
+    client_topics = state["client_topics"]
+    source: RouteQuery = question_router.invoke({
+        "client_topics":", ".join(client_topics),  
+        "question": question
+        })
     if source.datasource == WEBSEARCH:
         print("---ROUTE QUESTION TO WEB SEARCH---")
         return WEBSEARCH
@@ -72,7 +76,6 @@ workflow.add_node(GRADE_DOCUMENTS, grade_documents)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(WEBSEARCH, web_search)
 
-
 workflow.set_conditional_entry_point(
     route_question,
     {
@@ -80,6 +83,7 @@ workflow.set_conditional_entry_point(
         RETRIEVE: RETRIEVE,
     },
 )
+
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
 workflow.add_conditional_edges(
     GRADE_DOCUMENTS,

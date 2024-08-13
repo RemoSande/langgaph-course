@@ -1,3 +1,6 @@
+# This is a basic ingestion script and should be replaced with a custom data loader set-up
+# 
+
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma

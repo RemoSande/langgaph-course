@@ -10,9 +10,11 @@ class GraphState(TypedDict):
         generation: LLM generation
         web_search: whether to add search
         documents: list of documents
+        client_topics: list of client topics
     """
-
+    
     question: str
     generation: str
     web_search: bool
     documents: List[str]
+    client_topics: List[str]

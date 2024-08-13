@@ -17,14 +17,18 @@ class RouteQuery(BaseModel):
 llm = ChatOpenAI(temperature=0)
 structured_llm_router = llm.with_structured_output(RouteQuery)
 
+# client_topics = ['agents', 'prompt engineering', 'adversarial attacks']
+
 system = """You are an expert at routing a user question to a vectorstore or web search.
-The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
-Use the vectorstore for questions on these topics. For all else, use web-search."""
+The vectorstore contains documents related to 
+Use the vectorstore for questions on the following topics: {client_topics}. For all other topics, use web-search."""
 route_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system),
-        ("human", "{question}"),
-    ]
-)
+        [
+            ("system", system),
+            ("human", "Given the topics: {client_topics}, route this question: {question}"),
+        ]
+    )
 
 question_router = route_prompt | structured_llm_router
+
+
