@@ -1,6 +1,6 @@
-from typing import List, Dict, Any, TypedDict
-from pydantic import BaseModel
-
+from typing import List, Dict, Any
+from pydantic import BaseModel, Field
+from database.db import Database, InMemoryDatabase
 
 class GraphState(BaseModel):
     """
@@ -12,6 +12,7 @@ class GraphState(BaseModel):
         web_search: whether to add search
         documents: list of documents
         client_topics: list of client topics
+        db: database instance
     """
     
     question: str
@@ -19,3 +20,4 @@ class GraphState(BaseModel):
     web_search: bool = False
     documents: List[Dict[str, Any]] = []
     client_topics: List[str] = []
+    db: Database = Field(default_factory=InMemoryDatabase)
