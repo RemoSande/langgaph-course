@@ -2,14 +2,11 @@ import os
 from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI, HTTPException, Depends
 from langchain.schema import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-
+from typing import List
 from models import DocumentModel, DocumentResponse
 from database.db import PGVectorDatabase
-from graph.state import get_database
+from graph.state import get_database, GraphState
+from graph.graph import app as graph_app
 
 load_dotenv(find_dotenv())
 
@@ -35,23 +32,6 @@ load_dotenv()
 
 # Initialize database
 db = get_database()
-
-# Set up the retrieval chain
-embeddings = OpenAIEmbeddings()
-retriever = db.store.as_retriever()
-template = """Answer the question based only on the following context:
-{context}
-
-Question: {question}
-"""
-prompt = ChatPromptTemplate.from_template(template)
-model = ChatOpenAI(model_name="gpt-3.5-turbo")
-chain = (
-    {"context": retriever, "question": RunnablePassthrough()}
-    | prompt
-    | model
-    | StrOutputParser()
-)
 
 @app.post("/documents/")
 async def add_documents(documents: list[DocumentModel]):
@@ -101,9 +81,10 @@ async def delete_documents(ids: list[str]):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat/")
-async def quick_response(msg: str):
-    result = await chain.ainvoke(msg)
-    return result
+async def quick_response(msg: str, client_topics: List[str] = []):
+    state = GraphState(question=msg, client_topics=client_topics)
+    result = await graph_app.ainvoke(state)
+    return {"response": result.generation}
 
 @app.get("/health")
 async def health_check():
