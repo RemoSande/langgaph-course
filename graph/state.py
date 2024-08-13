@@ -3,8 +3,7 @@ from pydantic import BaseModel, Field
 from database.db import Database, PGVectorDatabase
 import os
 
-def get_database() -> Database:
-    connection_string = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('POSTGRES_DB')}"
+def get_database(connection_string: str) -> Database:
     return PGVectorDatabase(connection_string=connection_string, collection_name="rag_collection")
 
 class GraphState(BaseModel):

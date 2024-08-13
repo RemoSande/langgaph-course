@@ -33,18 +33,20 @@ def get_env_variable(var_name: str) -> str:
 # Load environment variables
 load_dotenv()
 
-# Get environment variables
-OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
-POSTGRES_USER = get_env_variable("POSTGRES_USER")
-POSTGRES_PASSWORD = get_env_variable("POSTGRES_PASSWORD")
-DB_HOST = get_env_variable("DB_HOST")
-DB_PORT = get_env_variable("DB_PORT")
-POSTGRES_DB = get_env_variable("POSTGRES_DB")
-
 try:
-    embeddings = OpenAIEmbeddings()
+    # Get environment variables
+    OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
+    POSTGRES_USER = get_env_variable("POSTGRES_USER")
+    POSTGRES_PASSWORD = get_env_variable("POSTGRES_PASSWORD")
+    DB_HOST = get_env_variable("DB_HOST")
+    DB_PORT = get_env_variable("DB_PORT")
+    POSTGRES_DB = get_env_variable("POSTGRES_DB")
 
-    pgvector_store = get_database().store
+    # Set up PostgreSQL connection
+    CONNECTION_STRING = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DB_HOST}:{DB_PORT}/{POSTGRES_DB}"
+
+    embeddings = OpenAIEmbeddings()
+    pgvector_store = get_database(CONNECTION_STRING).store
     retriever = pgvector_store.as_retriever()
     template = """Answer the question based only on the following context:
     {context}
