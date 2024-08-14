@@ -5,6 +5,7 @@ from api.main import app
 from database.db import get_database
 import os
 from dotenv import load_dotenv
+import asyncio
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,18 +21,55 @@ def test_app():
     return app
 
 @pytest.fixture(autouse=True)
-def setup_test_environment():
+async def setup_test_environment():
     # Ensure the DATABASE_URL is set for each test
     os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+    
+    # Clear the test database before each test
+    db = await get_database()
+    await db.delete_documents(await db.get_all_ids())
+    
     yield
-    # Clean up after tests if needed
+    
+    # Clean up after tests
+    await db.delete_documents(await db.get_all_ids())
 
 @pytest.mark.asyncio
 async def test_ingest_document(test_app):
+    test_documents = [
+        {
+            "page_content": "This is a test document about AI.",
+            "metadata": {
+                "source": "book",
+                "author": "Jane Smith",
+                "page": 42
+            }
+        },
+        {
+            "page_content": "Another test document about machine learning.",
+            "metadata": {
+                "source": "web",
+                "url": "https://example.com/ml",
+                "date": "2023-06-15"
+            }
+        }
+    ]
+    
     async with AsyncClient(app=test_app, base_url="http://test") as ac:
-        response = await ac.post("/documents/", json=[{"page_content": "Test document"}])
+        response = await ac.post("/documents/", json=test_documents)
+    
     assert response.status_code == 200
-    assert "ids" in response.json()
+    result = response.json()
+    assert "ids" in result
+    assert len(result["ids"]) == 2  # We sent 2 documents
+
+    # Now let's try to retrieve these documents
+    for doc_id in result["ids"]:
+        retrieve_response = await ac.get(f"/documents/?ids={doc_id}")
+        assert retrieve_response.status_code == 200
+        retrieved_doc = retrieve_response.json()[0]
+        assert "page_content" in retrieved_doc
+        assert "metadata" in retrieved_doc
 
 @pytest.mark.asyncio
 async def test_retrieve_document(test_app):
