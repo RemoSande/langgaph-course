@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set up test database URL
-os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@test_db:5432/test_db')
+os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
 
 client = TestClient(app)
 
@@ -18,6 +18,13 @@ client = TestClient(app)
 def test_app():
     # Set up any test-specific configurations here
     return app
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    # Ensure the DATABASE_URL is set for each test
+    os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+    yield
+    # Clean up after tests if needed
 
 @pytest.mark.asyncio
 async def test_ingest_document(test_app):
