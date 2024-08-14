@@ -7,15 +7,15 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
+    DB_HOST: str = "db"
+    DB_PORT: int = 5432
     OPENAI_API_KEY: str
     USE_ASYNC: bool = False
     API_PORT: int = 8000
     TEST_POSTGRES_DB: str = "test_db"
     TEST_POSTGRES_USER: str = "test_user"
     TEST_POSTGRES_PASSWORD: str = "test_password"
-    TEST_DB_PORT: int = 5434
+    TEST_DB_PORT: int = 5432
     
     # Construct database URLs
     @property
