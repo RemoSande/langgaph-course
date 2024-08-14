@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from database.db import Database, PGVectorDatabase
+from database.db import Database, AsyncPGVector
 import os
 from functools import lru_cache
 
