@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from database.db import Database, AsyncPGVector
+from langchain_openai import OpenAIEmbeddings
 import os
 from functools import lru_cache
 
