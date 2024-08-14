@@ -9,7 +9,7 @@ def get_database() -> Database:
     connection_string = os.getenv("DATABASE_URL")
     if not connection_string:
         raise ValueError("DATABASE_URL environment variable is not set")
-    return PGVectorDatabase(connection_string=connection_string, collection_name="rag_collection")
+    return AsyncPGVector.create(connection_string=connection_string, collection_name="rag_collection", embedding_function=OpenAIEmbeddings())
 
 class GraphState(BaseModel):
     """
