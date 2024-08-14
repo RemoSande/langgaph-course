@@ -11,7 +11,7 @@ import asyncio
 load_dotenv()
 
 # Set up test database URL
-test_db_url = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+test_db_url = 'postgresql+asyncpg://test_user:test_password@localhost:5434/test_db'
 os.environ['DATABASE_URL'] = test_db_url
 
 client = TestClient(app)
@@ -28,14 +28,12 @@ async def setup_test_environment():
     
     # Clear the test database before each test
     db = get_database()
-    async with db.get_store():
-        await db.delete_documents(await db.get_all_ids())
+    await db.delete_documents(await db.get_all_ids())
     
     yield
     
     # Clean up after tests
-    async with db.get_store():
-        await db.delete_documents(await db.get_all_ids())
+    await db.delete_documents(await db.get_all_ids())
 
 @pytest.mark.asyncio
 async def test_ingest_document(test_app):
@@ -67,12 +65,15 @@ async def test_ingest_document(test_app):
     assert len(result["ids"]) == 2  # We sent 2 documents
 
     # Now let's try to retrieve these documents
-    for doc_id in result["ids"]:
-        retrieve_response = await ac.get(f"/documents/?ids={doc_id}")
-        assert retrieve_response.status_code == 200
-        retrieved_doc = retrieve_response.json()[0]
-        assert "page_content" in retrieved_doc
-        assert "metadata" in retrieved_doc
+    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+        for doc_id in result["ids"]:
+            retrieve_response = await ac.get(f"/documents/?ids={doc_id}")
+            assert retrieve_response.status_code == 200
+            retrieved_docs = retrieve_response.json()
+            assert len(retrieved_docs) == 1
+            retrieved_doc = retrieved_docs[0]
+            assert "page_content" in retrieved_doc
+            assert "metadata" in retrieved_doc
 
 @pytest.mark.asyncio
 async def test_retrieve_document(test_app):

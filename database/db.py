@@ -63,77 +63,48 @@ class PGVectorDatabase(Database):
         self.embeddings = OpenAIEmbeddings()
         self.store = None
 
-    @asynccontextmanager
     async def get_store(self):
         if self.store is None:
-            self.store = AsyncPGVector(
+            self.store = await AsyncPGVector.create(
                 connection_string=self.connection_string,
                 collection_name=self.collection_name,
-                embedding_function=self.embeddings.embed_query,
+                embedding_function=self.embeddings,
             )
-        try:
-            yield self.store
-        except Exception as e:
-            logger.error(f"Database operation failed: {str(e)}")
-            raise
+        return self.store
 
-    async def store_documents(self, documents: List[Document]) -> List[str]:
-        try:
-            async with self.get_store() as store:
-                ids = await store.aadd_documents(documents)
-                return ids
-        except Exception as e:
-            logger.error(f"Failed to store documents: {str(e)}")
-            raise
+    async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
+        docs = [Document(page_content=doc['page_content'], metadata=doc.get('metadata', {})) for doc in documents]
+        store = await self.get_store()
+        return await store.aadd_documents(docs)
 
     async def retrieve_documents(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        try:
-            async with self.get_store() as store:
-                results = await store.asimilarity_search_with_score(query, k=k)
-            return [{'content': doc.page_content, 'metadata': doc.metadata, 'score': score} for doc, score in results]
-        except Exception as e:
-            logger.error(f"Failed to retrieve documents: {str(e)}")
-            raise
+        store = await self.get_store()
+        results = await store.asimilarity_search_with_score(query, k=k)
+        return [{'content': doc.page_content, 'metadata': doc.metadata, 'score': score} for doc, score in results]
 
     async def get_all_ids(self) -> List[str]:
-        try:
-            async with self.get_store() as store:
-                return await store.get_all_ids()
-        except Exception as e:
-            logger.error(f"Failed to get all IDs: {str(e)}")
-            raise
+        store = await self.get_store()
+        return await store.get_all_ids()
 
     async def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
-        try:
-            async with self.get_store() as store:
-                docs = await store.get_documents_by_ids(ids)
-            return [{'content': doc.page_content, 'metadata': doc.metadata} for doc in docs]
-        except Exception as e:
-            logger.error(f"Failed to get documents by IDs: {str(e)}")
-            raise
+        store = await self.get_store()
+        docs = await store.get_documents_by_ids(ids)
+        return [{'content': doc.page_content, 'metadata': doc.metadata} for doc in docs]
 
     async def delete_documents(self, ids: List[str]) -> None:
-        try:
-            async with self.get_store() as store:
-                await store.delete(ids=ids)
-        except Exception as e:
-            logger.error(f"Failed to delete documents: {str(e)}")
-            raise
+        store = await self.get_store()
+        await store.adelete(ids=ids)
 
     async def update_document(self, id: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        try:
-            async with self.get_store() as store:
-                await store.delete(ids=[id])
-                doc = Document(page_content=content, metadata=metadata or {})
-                await store.aadd_documents([doc])
-        except Exception as e:
-            logger.error(f"Failed to update document: {str(e)}")
-            raise
+        store = await self.get_store()
+        await store.adelete(ids=[id])
+        doc = Document(page_content=content, metadata=metadata or {})
+        await store.aadd_documents([doc])
 
     async def check_health(self) -> bool:
         try:
-            async with self.get_store() as store:
-                await store.get_all_ids()
+            store = await self.get_store()
+            await store.get_all_ids()
             return True
         except Exception as e:
             logger.error(f"Database health check failed: {str(e)}")
