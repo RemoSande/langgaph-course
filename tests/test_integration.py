@@ -11,7 +11,8 @@ import asyncio
 load_dotenv()
 
 # Set up test database URL
-os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+test_db_url = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+os.environ['DATABASE_URL'] = test_db_url
 
 client = TestClient(app)
 
@@ -23,7 +24,7 @@ def test_app():
 @pytest.fixture(autouse=True)
 async def setup_test_environment():
     # Ensure the DATABASE_URL is set for each test
-    os.environ['DATABASE_URL'] = os.getenv('TEST_DATABASE_URL', 'postgresql+psycopg://test_user:test_password@localhost:5434/test_db')
+    os.environ['DATABASE_URL'] = test_db_url
     
     # Clear the test database before each test
     db = await get_database()
