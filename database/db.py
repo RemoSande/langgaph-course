@@ -66,7 +66,7 @@ class PGVectorDatabase(Database):
     @asynccontextmanager
     async def get_store(self):
         if self.store is None:
-            self.store = await AsyncPgVector.create(
+            self.store = await AsyncPGVector.create(
                 connection_string=self.connection_string,
                 collection_name=self.collection_name,
                 embedding_function=self.embeddings,
