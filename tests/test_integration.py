@@ -11,23 +11,20 @@ import asyncio
 load_dotenv()
 
 # Set up test database URL
-test_db_url = 'postgresql+asyncpg://test_user:test_password@localhost:5434/test_db'
-os.environ['DATABASE_URL'] = test_db_url
+test_db_url = os.getenv('TEST_DATABASE_URL', 'postgresql+asyncpg://test_user:test_password@test_db:5432/test_db')
 
 client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def test_app():
     # Set up any test-specific configurations here
+    app.dependency_overrides[get_database] = lambda: PGVectorDatabase(test_db_url, "test_collection")
     return app
 
 @pytest.fixture(autouse=True)
-async def setup_test_environment():
-    # Ensure the DATABASE_URL is set for each test
-    os.environ['DATABASE_URL'] = test_db_url
-    
+async def setup_test_environment(test_app):
     # Clear the test database before each test
-    db = get_database()
+    db = test_app.dependency_overrides[get_database]()
     await db.delete_documents(await db.get_all_ids())
     
     yield

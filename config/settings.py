@@ -5,7 +5,7 @@ class Settings(BaseSettings):
      DATABASE_URL: str
      TEST_DATABASE_URL: str
      OPENAI_API_KEY: str
-     USE_ASYNC: bool = False
+     USE_ASYNC: bool = True
      API_PORT: int = 8000
 
      S3_BUCKET_NAME: Optional[str] = None
