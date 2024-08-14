@@ -100,11 +100,28 @@ async def health_check():
     try:
         is_healthy = await db.check_health()
         if is_healthy:
-            return {"status": "healthy"}
+            return {"status": "healthy", "database": "connected"}
         else:
             raise HTTPException(status_code=500, detail="Database health check failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+@app.get("/db-test")
+async def db_test():
+    try:
+        # Test document insertion
+        test_doc = {"content": "Test document", "metadata": {"test": True}}
+        doc_id = await db.store_documents([test_doc])
+        
+        # Test document retrieval
+        retrieved_doc = await db.get_documents_by_ids(doc_id)
+        
+        # Test document deletion
+        await db.delete_documents(doc_id)
+        
+        return {"status": "success", "message": "Database operations successful"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database test failed: {str(e)}")
 
 @app.get("/search/")
 async def search_documents(query: str, k: int = 5):

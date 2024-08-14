@@ -116,4 +116,44 @@ async def test_health_check(test_app):
     async with AsyncClient(app=test_app, base_url="http://test") as ac:
         response = await ac.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert response.json() == {"status": "healthy", "database": "connected"}
+
+@pytest.mark.asyncio
+async def test_db_operations(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+        response = await ac.get("/db-test")
+    assert response.status_code == 200
+    assert response.json() == {"status": "success", "message": "Database operations successful"}
+
+@pytest.mark.asyncio
+async def test_search_documents(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+        # First, ingest a test document
+        ingest_response = await ac.post("/documents/", json=[{"page_content": "This is a test document about AI and machine learning."}])
+        assert ingest_response.status_code == 200
+
+        # Now, search for the document
+        search_response = await ac.get("/search/?query=AI&k=1")
+        assert search_response.status_code == 200
+        results = search_response.json()
+        assert len(results) == 1
+        assert "AI" in results[0]['content']
+
+@pytest.mark.asyncio
+async def test_update_document(test_app):
+    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+        # First, ingest a test document
+        ingest_response = await ac.post("/documents/", json=[{"page_content": "Original content"}])
+        assert ingest_response.status_code == 200
+        doc_id = ingest_response.json()["ids"][0]
+
+        # Update the document
+        update_response = await ac.put(f"/documents/{doc_id}", json={"content": "Updated content", "metadata": {"updated": True}})
+        assert update_response.status_code == 200
+
+        # Retrieve the updated document
+        get_response = await ac.get(f"/documents/?ids={doc_id}")
+        assert get_response.status_code == 200
+        updated_doc = get_response.json()[0]
+        assert updated_doc["page_content"] == "Updated content"
+        assert updated_doc["metadata"]["updated"] == True

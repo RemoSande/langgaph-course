@@ -9,6 +9,14 @@ from contextlib import asynccontextmanager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class DatabaseError(Exception):
+    """Base class for database exceptions"""
+    pass
+
+class DocumentNotFoundError(DatabaseError):
+    """Raised when a document is not found"""
+    pass
+
 class Database(ABC):
     @abstractmethod
     async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
@@ -37,6 +45,16 @@ class Database(ABC):
     @abstractmethod
     async def check_health(self) -> bool:
         pass
+
+    async def safe_get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
+        try:
+            documents = await self.get_documents_by_ids(ids)
+            if not documents:
+                raise DocumentNotFoundError(f"No documents found for ids: {ids}")
+            return documents
+        except Exception as e:
+            logger.error(f"Error retrieving documents: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve documents: {str(e)}")
 
 class PGVectorDatabase(Database):
     def __init__(self, connection_string: str, collection_name: str):
