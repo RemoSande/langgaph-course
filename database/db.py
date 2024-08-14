@@ -140,23 +140,58 @@ class PGVectorDatabase(Database):
             return False
 
 # Keep the InMemoryDatabase for testing purposes
-class InMemoryDatabase(Database):
-    def __init__(self):
-        self.documents = []
+class PGVectorDatabase(Database):
+    def __init__(self, connection_string: str, collection_name: str):
+        self.connection_string = connection_string
+        self.collection_name = collection_name
+        self.embeddings = OpenAIEmbeddings()
+        self.store = None
+
+    async def initialize(self):
+        if self.store is None:
+            self.store = await AsyncPGVector.create(
+                connection_string=self.connection_string,
+                collection_name=self.collection_name,
+                embedding_function=self.embeddings,
+            )
 
     async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
-        ids = [f"doc_{i}" for i in range(len(self.documents), len(self.documents) + len(documents))]
-        self.documents.extend(zip(ids, documents))
-        return ids
+        await self.initialize()
+        docs = [Document(page_content=doc['content'], metadata=doc.get('metadata', {})) for doc in documents]
+        return await self.store.aadd_documents(docs)
 
     async def retrieve_documents(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        return [doc for _, doc in self.documents[:k]]
+        await self.initialize()
+        results = await self.store.asimilarity_search_with_score(query, k=k)
+        return [{'content': doc.page_content, 'metadata': doc.metadata, 'score': score} for doc, score in results]
 
     async def get_all_ids(self) -> List[str]:
-        return [id for id, _ in self.documents]
+        await self.initialize()
+        return await self.store.get_all_ids()
 
     async def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
-        return [doc for id, doc in self.documents if id in ids]
+        await self.initialize()
+        docs = await self.store.get_documents_by_ids(ids)
+        return [{'content': doc.page_content, 'metadata': doc.metadata} for doc in docs]
 
     async def delete_documents(self, ids: List[str]) -> None:
-        self.documents = [(id, doc) for id, doc in self.documents if id not in ids]
+        await self.initialize()
+        await self.store.delete(ids=ids)
+
+    async def update_document(self, id: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        await self.initialize()
+        await self.store.delete(ids=[id])
+        doc = Document(page_content=content, metadata=metadata or {})
+        await self.store.aadd_documents([doc])
+
+    async def check_health(self) -> bool:
+        try:
+            await self.initialize()
+            await self.store.get_all_ids()
+            return True
+        except Exception as e:
+            logger.error(f"Database health check failed: {str(e)}")
+            return False
+
+class InMemoryDatabase(Database):
+    # ... (keep the existing InMemoryDatabase implementation)

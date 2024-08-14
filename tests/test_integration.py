@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from fastapi.testclient import TestClient
 from api.main import app
-from database.db import get_database
+from graph.state import get_database
 import os
 from dotenv import load_dotenv
 import asyncio
