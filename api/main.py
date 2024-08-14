@@ -3,7 +3,7 @@ from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI, HTTPException, Depends
 from langchain.schema import Document
 from typing import List
-from models import DocumentModel, DocumentResponse
+from api.models import DocumentModel, DocumentResponse
 from graph.state import get_database, GraphState
 from database.db import Database
 from graph.graph import app as graph_app
