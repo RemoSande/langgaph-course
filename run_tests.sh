@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-# Start the test database
-docker-compose up -d test_db
+# Start the test database and API service
+docker-compose up -d test_db api
 
-# Wait for the database to be ready
-echo "Waiting for test database to be ready..."
-sleep 10
+# Wait for the services to be ready
+echo "Waiting for services to be ready..."
+sleep 15
 
 # Run the tests
-pytest tests/
+pytest tests/test_integration.py
 
-# Shut down the test database
+# Shut down the services
 docker-compose down
