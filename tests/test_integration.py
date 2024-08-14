@@ -6,34 +6,55 @@ from database.db import get_database
 
 client = TestClient(app)
 
-def test_ingest_document():
-    response = client.post("/documents/", json={"page_content": "Test document"})
+@pytest.mark.asyncio
+async def test_ingest_document():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/documents/", json=[{"page_content": "Test document"}])
     assert response.status_code == 200
-    assert "id" in response.json()
+    assert "ids" in response.json()
 
-def test_retrieve_document():
+@pytest.mark.asyncio
+async def test_retrieve_document():
     # First, ingest a document
-    ingest_response = client.post("/documents/", json={"page_content": "Test document"})
-    doc_id = ingest_response.json()["id"]
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        ingest_response = await ac.post("/documents/", json=[{"page_content": "Test document"}])
+        doc_id = ingest_response.json()["ids"][0]
 
-    # Then, retrieve it
-    response = client.get(f"/documents/?ids={doc_id}")
+        # Then, retrieve it
+        response = await ac.get(f"/documents/?ids={doc_id}")
     assert response.status_code == 200
     assert response.json()[0]["page_content"] == "Test document"
 
-def test_database_connection():
+@pytest.mark.asyncio
+async def test_database_connection():
     db = get_database()
-    assert db.check_health() == True
+    assert await db.check_health() == True
 
-def test_delete_document():
-    # First, ingest a document
-    ingest_response = client.post("/documents/", json={"page_content": "Test document to delete"})
-    doc_id = ingest_response.json()["id"]
+@pytest.mark.asyncio
+async def test_delete_document():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # First, ingest a document
+        ingest_response = await ac.post("/documents/", json=[{"page_content": "Test document to delete"}])
+        doc_id = ingest_response.json()["ids"][0]
 
-    # Then, delete it
-    delete_response = client.delete(f"/documents/?ids={doc_id}")
-    assert delete_response.status_code == 200
+        # Then, delete it
+        delete_response = await ac.delete(f"/documents/?ids={doc_id}")
+        assert delete_response.status_code == 200
 
-    # Try to retrieve it (should fail)
-    get_response = client.get(f"/documents/?ids={doc_id}")
-    assert get_response.status_code == 404
+        # Try to retrieve it (should fail)
+        get_response = await ac.get(f"/documents/?ids={doc_id}")
+        assert get_response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_chat():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/chat/", json={"msg": "Hello, how are you?", "client_topics": []})
+    assert response.status_code == 200
+    assert "response" in response.json()
+
+@pytest.mark.asyncio
+async def test_health_check():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
