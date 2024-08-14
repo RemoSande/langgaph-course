@@ -3,6 +3,7 @@ from httpx import AsyncClient
 from fastapi.testclient import TestClient
 from api.main import app
 from graph.state import get_database
+from database.db import PGVectorDatabase
 import os
 from dotenv import load_dotenv
 import asyncio
