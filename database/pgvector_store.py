@@ -1,10 +1,10 @@
 import logging
 from typing import Any, List, Optional, Dict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
 from sqlalchemy.future import select
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,15 +31,45 @@ class AsyncPGVector(PGVector):
         Returns:
             AsyncPGVector: An initialized AsyncPGVector instance.
         """
-        # Convert connection string to use postgresql+psycopg://
+        # Ensure the connection string uses the correct format and includes langchain:langchain@
         parsed = urlparse(connection_string)
-        new_connection_string = f"postgresql+psycopg://{parsed.netloc}{parsed.path}"
+        if parsed.scheme != "postgresql+psycopg":
+            raise ValueError("Connection string must start with 'postgresql+psycopg://'")
+        
+        if not parsed.username or not parsed.password:
+            netloc = f"langchain:langchain@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            parsed = parsed._replace(netloc=netloc)
+        
+        connection_string = urlunparse(parsed)
 
+        # Create an async engine
+        engine = create_async_engine(connection_string)
+
+        # Create and return the AsyncPGVector instance
         return cls(
-            connection_string=new_connection_string,
+            connection=engine,
             collection_name=collection_name,
             embedding_function=embedding_function,
             async_mode=True
+        )
+
+    def __init__(self, connection: AsyncEngine, collection_name: str, embedding_function: Any, async_mode: bool = True):
+        """
+        Initialize the AsyncPGVector instance.
+
+        Args:
+            connection (AsyncEngine): The SQLAlchemy AsyncEngine object.
+            collection_name (str): The name of the collection to use.
+            embedding_function (Any): The function to use for creating embeddings.
+            async_mode (bool): Whether to use async mode. Defaults to True.
+        """
+        super().__init__(
+            connection=connection,
+            collection_name=collection_name,
+            embedding_function=embedding_function,
+            async_mode=async_mode
         )
 
     async def get_all_ids(self) -> List[str]:
@@ -154,9 +184,9 @@ class AsyncPGVector(PGVector):
             bool: True if the collection exists, False otherwise.
         """
         try:
-            async with AsyncSession(self._engine) as session:
+            async with self.connection.connect() as conn:
                 query = text(f"SELECT to_regclass('{self.collection_name}')")
-                result = await session.execute(query)
+                result = await conn.execute(query)
                 return result.scalar() is not None
         except SQLAlchemyError as e:
             logger.error(f"Error checking if collection exists: {e}")
