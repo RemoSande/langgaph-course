@@ -47,13 +47,13 @@ db = get_database()
 async def add_documents(documents: list[DocumentModel]):
     try:
         docs = [
-            {
-                "content": doc.page_content,
-                "metadata": {
+            Document(
+                page_content=doc.page_content,
+                metadata={
                     **doc.metadata,
                     "digest": doc.generate_digest()
                 } if doc.metadata else {"digest": doc.generate_digest()}
-            }
+            )
             for doc in documents
         ]
         ids = await db.store_documents(docs)
@@ -90,8 +90,8 @@ async def delete_documents(ids: list[str]):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat/")
-async def quick_response(msg: str, client_topics: List[str] = []):
-    state = GraphState(question=msg, client_topics=client_topics)
+async def quick_response(query: SearchQuery):
+    state = GraphState(question=query.query, client_topics=[])
     result = await graph_app.ainvoke(state)
     return {"response": result.generation}
 

@@ -66,10 +66,10 @@ class PGVectorDatabase(Database):
     @asynccontextmanager
     async def get_store(self):
         if self.store is None:
-            self.store = await AsyncPGVector.create(
+            self.store = AsyncPGVector(
                 connection_string=self.connection_string,
                 collection_name=self.collection_name,
-                embedding_function=self.embeddings,
+                embedding_function=self.embeddings.embed_query,
             )
         try:
             yield self.store
@@ -77,11 +77,11 @@ class PGVectorDatabase(Database):
             logger.error(f"Database operation failed: {str(e)}")
             raise
 
-    async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
+    async def store_documents(self, documents: List[Document]) -> List[str]:
         try:
-            docs = [Document(page_content=doc['content'], metadata=doc.get('metadata', {})) for doc in documents]
             async with self.get_store() as store:
-                return await store.aadd_documents(docs)
+                ids = await store.aadd_documents(documents)
+                return ids
         except Exception as e:
             logger.error(f"Failed to store documents: {str(e)}")
             raise
