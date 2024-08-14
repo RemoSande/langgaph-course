@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from database.pgvector_store import AsyncPGVector
+from database.pgvector_store import AsyncPGVector as AsyncPgVector
 import logging
 from contextlib import asynccontextmanager
 
@@ -48,10 +48,10 @@ class PGVectorDatabase(Database):
     @asynccontextmanager
     async def get_store(self):
         if self.store is None:
-            self.store = AsyncPgVector(
+            self.store = await AsyncPgVector.create(
                 connection_string=self.connection_string,
-                embedding_function=self.embeddings,
                 collection_name=self.collection_name,
+                embedding_function=self.embeddings,
             )
         try:
             yield self.store
