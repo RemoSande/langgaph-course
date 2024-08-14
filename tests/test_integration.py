@@ -27,13 +27,15 @@ async def setup_test_environment():
     os.environ['DATABASE_URL'] = test_db_url
     
     # Clear the test database before each test
-    db = await get_database()
-    await db.delete_documents(await db.get_all_ids())
+    db = get_database()
+    async with db.get_store():
+        await db.delete_documents(await db.get_all_ids())
     
     yield
     
     # Clean up after tests
-    await db.delete_documents(await db.get_all_ids())
+    async with db.get_store():
+        await db.delete_documents(await db.get_all_ids())
 
 @pytest.mark.asyncio
 async def test_ingest_document(test_app):

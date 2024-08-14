@@ -147,47 +147,53 @@ class PGVectorDatabase(Database):
         self.embeddings = OpenAIEmbeddings()
         self.store = None
 
-    async def initialize(self):
+    @asynccontextmanager
+    async def get_store(self):
         if self.store is None:
             self.store = await AsyncPGVector.create(
                 connection_string=self.connection_string,
                 collection_name=self.collection_name,
                 embedding_function=self.embeddings,
             )
+        try:
+            yield self.store
+        finally:
+            if self.store:
+                await self.store.aclose()
 
     async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
-        await self.initialize()
         docs = [Document(page_content=doc['content'], metadata=doc.get('metadata', {})) for doc in documents]
-        return await self.store.aadd_documents(docs)
+        async with self.get_store() as store:
+            return await store.aadd_documents(docs)
 
     async def retrieve_documents(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        await self.initialize()
-        results = await self.store.asimilarity_search_with_score(query, k=k)
+        async with self.get_store() as store:
+            results = await store.asimilarity_search_with_score(query, k=k)
         return [{'content': doc.page_content, 'metadata': doc.metadata, 'score': score} for doc, score in results]
 
     async def get_all_ids(self) -> List[str]:
-        await self.initialize()
-        return await self.store.get_all_ids()
+        async with self.get_store() as store:
+            return await store.get_all_ids()
 
     async def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
-        await self.initialize()
-        docs = await self.store.get_documents_by_ids(ids)
+        async with self.get_store() as store:
+            docs = await store.get_documents_by_ids(ids)
         return [{'content': doc.page_content, 'metadata': doc.metadata} for doc in docs]
 
     async def delete_documents(self, ids: List[str]) -> None:
-        await self.initialize()
-        await self.store.delete(ids=ids)
+        async with self.get_store() as store:
+            await store.delete(ids=ids)
 
     async def update_document(self, id: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        await self.initialize()
-        await self.store.delete(ids=[id])
-        doc = Document(page_content=content, metadata=metadata or {})
-        await self.store.aadd_documents([doc])
+        async with self.get_store() as store:
+            await store.delete(ids=[id])
+            doc = Document(page_content=content, metadata=metadata or {})
+            await store.aadd_documents([doc])
 
     async def check_health(self) -> bool:
         try:
-            await self.initialize()
-            await self.store.get_all_ids()
+            async with self.get_store() as store:
+                await store.get_all_ids()
             return True
         except Exception as e:
             logger.error(f"Database health check failed: {str(e)}")
