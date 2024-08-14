@@ -200,4 +200,33 @@ class PGVectorDatabase(Database):
             return False
 
 class InMemoryDatabase(Database):
-    # ... (keep the existing InMemoryDatabase implementation)
+    def __init__(self):
+        self.documents = {}
+
+    async def store_documents(self, documents: List[Dict[str, Any]]) -> List[str]:
+        # Implement store_documents method
+        pass
+
+    async def retrieve_documents(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
+        # Implement retrieve_documents method
+        pass
+
+    async def get_all_ids(self) -> List[str]:
+        # Implement get_all_ids method
+        pass
+
+    async def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
+        # Implement get_documents_by_ids method
+        pass
+
+    async def delete_documents(self, ids: List[str]) -> None:
+        # Implement delete_documents method
+        pass
+
+    async def update_document(self, id: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        # Implement update_document method
+        pass
+
+    async def check_health(self) -> bool:
+        # Implement check_health method
+        return True
