@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from database.pgvector_store import AsyncPgVector
+from database.pgvector_store import AsyncPGVector
 import logging
 from contextlib import asynccontextmanager
 
