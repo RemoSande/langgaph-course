@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from database.db import Database, AsyncPGVector
+from database.db import Database
+from database.pgvector_store import AsyncPGVector
 from langchain_openai import OpenAIEmbeddings
 import os
 from functools import lru_cache
@@ -9,7 +10,7 @@ from functools import lru_cache
 def get_database() -> Database:
     connection_string = os.getenv("DATABASE_URL")
     if not connection_string:
-        raise ValueError("DATABASE_URL environment variable is not set")
+        raise ValueError("DATABASE_URL environment variable is not set. Please set it in your environment or .env file.")
     return AsyncPGVector.create(connection_string=connection_string, collection_name="rag_collection", embedding_function=OpenAIEmbeddings())
 
 class GraphState(BaseModel):
