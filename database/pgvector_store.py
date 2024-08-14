@@ -1,11 +1,13 @@
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from urllib.parse import urlparse
 
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -143,3 +145,45 @@ class AsyncPGVector(PGVector):
         """Asynchronously close the database connection."""
         if hasattr(self, '_engine'):
             await self._engine.dispose()
+
+    async def collection_exists(self) -> bool:
+        """
+        Check if the collection exists in the database.
+
+        Returns:
+            bool: True if the collection exists, False otherwise.
+        """
+        try:
+            async with AsyncSession(self._engine) as session:
+                query = text(f"SELECT to_regclass('{self.collection_name}')")
+                result = await session.execute(query)
+                return result.scalar() is not None
+        except SQLAlchemyError as e:
+            logger.error(f"Error checking if collection exists: {e}")
+            return False
+
+    async def update_document(self, document_id: str, new_content: str, new_metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Update an existing document in the collection.
+
+        Args:
+            document_id (str): The ID of the document to update.
+            new_content (str): The new content for the document.
+            new_metadata (Optional[Dict[str, Any]]): The new metadata for the document.
+
+        Returns:
+            bool: True if the document was updated successfully, False otherwise.
+        """
+        try:
+            async with AsyncSession(self._engine) as session:
+                # First, delete the existing document
+                await self.adelete([document_id])
+
+                # Then, add the updated document
+                new_document = Document(page_content=new_content, metadata=new_metadata or {})
+                added_ids = await self.aadd_documents([new_document])
+
+                return len(added_ids) > 0 and added_ids[0] == document_id
+        except Exception as e:
+            logger.error(f"Error updating document: {e}")
+            return False
