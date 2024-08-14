@@ -6,6 +6,16 @@ from typing import List
 from api.models import DocumentModel, DocumentResponse
 from graph.state import get_database, GraphState
 from database.db import Database
+from typing import List, Optional
+from pydantic import BaseModel
+
+class SearchQuery(BaseModel):
+    query: str
+    k: int = 5
+
+class UpdateDocument(BaseModel):
+    content: str
+    metadata: Optional[dict] = None
 from graph.graph import app as graph_app
 
 load_dotenv(find_dotenv())
@@ -93,5 +103,21 @@ async def health_check():
             return {"status": "healthy"}
         else:
             raise HTTPException(status_code=500, detail="Database health check failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/search/")
+async def search_documents(query: str, k: int = 5):
+    try:
+        results = await db.retrieve_documents(query, k=k)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/documents/{doc_id}")
+async def update_document(doc_id: str, update: UpdateDocument):
+    try:
+        await db.update_document(doc_id, update.content, update.metadata)
+        return {"message": "Document updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
