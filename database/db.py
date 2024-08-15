@@ -5,6 +5,7 @@ from langchain_openai import OpenAIEmbeddings
 from database.pgvector_store import AsyncPGVector
 import logging
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -169,6 +170,37 @@ class PGVectorDatabase(Database):
         except Exception as e:
             logger.error(f"Database health check failed: {str(e)}")
             return False
+
+    async def create_custom_table(self, table_name: str):
+        async with self.get_store() as store:
+            async with store._engine.begin() as conn:
+                await conn.execute(text(f"""
+                    CREATE TABLE IF NOT EXISTS {table_name} (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT
+                    )
+                """))
+
+    async def insert_test_data(self, table_name: str, data: List[Dict[str, Any]]):
+        async with self.get_store() as store:
+            async with store._engine.begin() as conn:
+                for item in data:
+                    await conn.execute(text(f"""
+                        INSERT INTO {table_name} (name, description)
+                        VALUES (:name, :description)
+                    """), item)
+
+    async def fetch_all_from_table(self, table_name: str) -> List[Dict[str, Any]]:
+        async with self.get_store() as store:
+            async with store._engine.begin() as conn:
+                result = await conn.execute(text(f"SELECT * FROM {table_name}"))
+                return [dict(row) for row in result]
+
+    async def drop_table(self, table_name: str):
+        async with self.get_store() as store:
+            async with store._engine.begin() as conn:
+                await conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
 
 class InMemoryDatabase(Database):
     def __init__(self):

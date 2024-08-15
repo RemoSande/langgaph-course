@@ -75,3 +75,39 @@ async def test_pgvector_health_check():
     # Check database health
     health_status = await db.check_health()
     assert health_status == True
+
+@pytest.mark.asyncio
+async def test_create_and_populate_custom_table():
+    db = PGVectorDatabase(settings.TEST_DATABASE_URL, "test_collection")
+    table_name = "test_items"
+    
+    try:
+        # Create a new table
+        await db.create_custom_table(table_name)
+        
+        # Insert test data
+        test_data = [
+            {"name": "Item 1", "description": "This is item 1"},
+            {"name": "Item 2", "description": "This is item 2"},
+            {"name": "Item 3", "description": "This is item 3"},
+        ]
+        await db.insert_test_data(table_name, test_data)
+        
+        # Fetch and verify the data
+        fetched_data = await db.fetch_all_from_table(table_name)
+        
+        assert len(fetched_data) == len(test_data)
+        for i, item in enumerate(fetched_data):
+            assert item['name'] == test_data[i]['name']
+            assert item['description'] == test_data[i]['description']
+        
+    finally:
+        # Clean up: drop the test table
+        await db.drop_table(table_name)
+
+    # Verify the table was dropped
+    try:
+        await db.fetch_all_from_table(table_name)
+        pytest.fail(f"The '{table_name}' table should not exist after dropping it")
+    except Exception:
+        pass  # Expected behavior
