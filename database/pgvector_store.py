@@ -56,7 +56,6 @@ class AsyncPGVector(PGVector):
             connection=engine,
             collection_name=collection_name,
             embedding_function=embedding_function,
-            async_mode=True
         )
 
     def __init__(self, connection: AsyncEngine, collection_name: str, embedding_function: Embeddings, async_mode: bool = True):
@@ -69,13 +68,18 @@ class AsyncPGVector(PGVector):
             embedding_function (Embeddings): The function to use for creating embeddings.
             async_mode (bool): Whether to use async mode. Defaults to True.
         """
+        self.connection = connection
+        self.collection_name = collection_name
+        self.embedding_function = embedding_function
+        self.async_mode = async_mode
+        
+        # Initialize the parent PGVector class with the correct arguments
         super().__init__(
             connection_string=str(connection.url),
             collection_name=collection_name,
             embedding_function=embedding_function,
         )
         self._engine = connection
-        self.async_mode = async_mode
 
     async def get_all_ids(self) -> List[str]:
         """
