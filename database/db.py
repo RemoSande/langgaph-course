@@ -112,12 +112,15 @@ class PGVectorDatabase(Database):
             return False
 
 # Keep the InMemoryDatabase for testing purposes
+from sqlalchemy.ext.asyncio import create_async_engine
+
 class PGVectorDatabase(Database):
     def __init__(self, connection_string: str, collection_name: str):
         self.connection_string = connection_string
         self.collection_name = collection_name
         self.embeddings = OpenAIEmbeddings()
         self.store = None
+        self._engine = create_async_engine(connection_string)
 
     @asynccontextmanager
     async def get_store(self):

@@ -4,10 +4,14 @@ from urllib.parse import urlparse, urlunparse
 
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
 from sqlalchemy.future import select
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from urllib.parse import urlparse, urlunparse
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +23,14 @@ class AsyncPGVector(PGVector):
     """
 
     @classmethod
-    async def create(cls, connection_string: str, collection_name: str, embedding_function: Any):
+    async def create(cls, connection_string: str, collection_name: str, embedding_function: Embeddings):
         """
         Asynchronously create and initialize a new AsyncPGVector instance.
 
         Args:
             connection_string (str): The database connection string.
             collection_name (str): The name of the collection to use.
-            embedding_function (Any): The function to use for creating embeddings.
+            embedding_function (Embeddings): The function to use for creating embeddings.
 
         Returns:
             AsyncPGVector: An initialized AsyncPGVector instance.
@@ -55,22 +59,23 @@ class AsyncPGVector(PGVector):
             async_mode=True
         )
 
-    def __init__(self, connection: AsyncEngine, collection_name: str, embedding_function: Any, async_mode: bool = True):
+    def __init__(self, connection: AsyncEngine, collection_name: str, embedding_function: Embeddings, async_mode: bool = True):
         """
         Initialize the AsyncPGVector instance.
 
         Args:
             connection (AsyncEngine): The SQLAlchemy AsyncEngine object.
             collection_name (str): The name of the collection to use.
-            embedding_function (Any): The function to use for creating embeddings.
+            embedding_function (Embeddings): The function to use for creating embeddings.
             async_mode (bool): Whether to use async mode. Defaults to True.
         """
         super().__init__(
-            connection=connection,
+            connection_string=str(connection.url),
             collection_name=collection_name,
             embedding_function=embedding_function,
-            async_mode=async_mode
         )
+        self._engine = connection
+        self.async_mode = async_mode
 
     async def get_all_ids(self) -> List[str]:
         """

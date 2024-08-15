@@ -13,6 +13,7 @@ async def test_pgvector_store_and_retrieve():
         {"content": "This is a test document 2", "metadata": {"source": "test2"}},
     ]
 
+    doc_ids = []  # Initialize doc_ids here
     try:
         # Store the documents
         doc_ids = await db.store_documents(sample_docs)
@@ -40,7 +41,8 @@ async def test_pgvector_store_and_retrieve():
 
     finally:
         # Clean up: delete the test documents
-        await db.delete_documents(doc_ids)
+        if doc_ids:
+            await db.delete_documents(doc_ids)
 
     # Verify documents were deleted
     remaining_docs = await db.get_documents_by_ids(doc_ids)
