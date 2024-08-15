@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 import os
+from typing import List
 
 def list_s3_files(bucket_name: str, folder_path: str) -> List[str]:
     s3 = boto3.client('s3')
