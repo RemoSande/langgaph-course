@@ -2,11 +2,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    TEST_DATABASE_URL: str
-    OPENAI_API_KEY: str
+    POSTGRES_DB: Optional[str] = None
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    DB_HOST: Optional[str] = None
+    DB_PORT: Optional[str] = None
+    TEST_DB_PORT: Optional[str] = None
+    TEST_POSTGRES_DB: Optional[str] = None
+    TEST_POSTGRES_USER: Optional[str] = None
+    TEST_POSTGRES_PASSWORD: Optional[str] = None
     USE_ASYNC: bool = True
     API_PORT: int = 8000
+    TEST_DATABASE_URL: str
+    
+    DATABASE_URL: str
+    OPENAI_API_KEY: str
+
 
     S3_BUCKET_NAME: Optional[str] = None
     S3_ACCESS_KEY: Optional[str] = None
@@ -24,15 +35,7 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     TAVILY_API_KEY: Optional[str] = None
-    POSTGRES_DB: Optional[str] = None
-    POSTGRES_USER: Optional[str] = None
-    POSTGRES_PASSWORD: Optional[str] = None
-    DB_HOST: Optional[str] = None
-    DB_PORT: Optional[str] = None
-    TEST_DB_PORT: Optional[str] = None
-    TEST_POSTGRES_DB: Optional[str] = None
-    TEST_POSTGRES_USER: Optional[str] = None
-    TEST_POSTGRES_PASSWORD: Optional[str] = None
+  
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra='ignore')
 

@@ -3,12 +3,12 @@ from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI, HTTPException, Depends
 from langchain.schema import Document
 from typing import List
-from api.models import DocumentModel, DocumentResponse
+from core.models import DocumentModel, DocumentResponse
 from graph.state import get_database, GraphState
 from database.db import Database, PGVectorDatabase
 from typing import List, Optional
 from pydantic import BaseModel
-from config.settings import settings
+from core.settings import settings
 from ingestion.pdf_parser import parse_pdf
 from ingestion.s3_handler import download_from_s3, list_s3_files
 
